@@ -1,15 +1,14 @@
-from typing import List, Dict
+from typing import Dict, List, Optional
 from pydantic import BaseModel
 from threading import Lock
 import time
-
 
 class SiteEntry(BaseModel):
     url: str
     last_scan: float = 0.0
     score: float = 0.0
     recommendations: List[str] = []
-
+    details: Optional[Dict[str, float]] | None = None
 
 class SiteStore:
     def __init__(self):
@@ -23,18 +22,14 @@ class SiteStore:
                 self.sites[url] = entry
             return self.sites[url]
 
-    def update_site(self, url: str, score: float, recommendations: List[str]):
+    def update_site(self, url: str, score: float, recommendations: List[str], details: Dict[str, float]):
         with self.lock:
             if url in self.sites:
                 entry = self.sites[url]
+                entry.last_scan = time.time()
                 entry.score = score
                 entry.recommendations = recommendations
-                entry.last_scan = time.time()
-
-    def list_sites(self) -> List[SiteEntry]:
-        with self.lock:
-            return list(self.sites.values())
-
-
-# Singleton instance to be used across the application
-site_store = SiteStore()
+                entry.details = details
+            else:
+                entry = SiteEntry(url=url, last_scan=time.time(), score=score, recommendations=recommendations, details=details)
+                self.sites[url] = entry
