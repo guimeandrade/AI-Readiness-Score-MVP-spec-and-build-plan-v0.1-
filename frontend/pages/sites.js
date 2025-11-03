@@ -1,81 +1,97 @@
 import { useState, useEffect } from 'react';
 
-export default function SitesPage() {
+const SitesPage = () => {
   const [sites, setSites] = useState([]);
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+  const fetchSites = async () => {
+    try {
+      const res = await fetch(`${API_URL}/sites`);
+      if (!res.ok) throw new Error('Failed to fetch sites');
+      const data = await res.json();
+      setSites(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    // Fetch list of monitored sites from backend
-    const fetchSites = async () => {
-      try {
-        const res = await fetch(`${API_URL}/sites`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch sites');
-        }
-        const data = await res.json();
-        setSites(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
     fetchSites();
-  }, [API_URL]);
+  }, []);
 
   const handleAddSite = async (e) => {
-  e.preventDefault();
-    setError('');
-    if (!url) return;
+    e.preventDefault();
+    if (!url.trim()) {
+      setError('Please enter a URL.');
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/sites`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setSites([...sites, data]);
-        setUrl('');
-      } else {
-        const text = await res.text();
-        setError('Failed to add site: ' + text);
+      if (!res.ok) {
+        throw new Error('Failed to add site');
       }
+      const data = await res.json();
+      setSites([...sites, data]);
+      setUrl('');
+      setError('');
     } catch (err) {
-      setError('Error: ' + err.message);
+      setError(err.message);
     }
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '20px auto' }}>
+    <div style={{ padding: '1rem' }}>
       <h1>Monitored Sites</h1>
-      <form onSubmit={handleAddSite} style={{ marginBottom: '20px' }}>
+      <form onSubmit={handleAddSite} style={{ marginBottom: '1rem' }}>
         <input
-          type="text"
+          type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Enter site URL"
-          style={{ width: '70%', padding: '8px' }}
+          placeholder="Enter website URL"
+          style={{ width: '300px', marginRight: '0.5rem' }}
         />
-        <button type="submit" style={{ padding: '8px 12px', marginLeft: '8px' }}>
-          Add Site
-        </button>
+        <button type="submit">Add Site</button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <ul>
-        {sites.map((site, index) => (
-          <li key={index} style={{ marginBottom: '10px' }}>
-            <strong>{site.url}</strong> – Score: {site.score ?? 'N/A'}
+        {sites.map((site) => (
+          <li key={site.url} style={{ marginBottom: '1rem' }}>
+            <strong>{site.url}</strong>
+            <div>Score: {site.score}</div>
+            {site.details && (
+              <div>
+                <em>Category Breakdown:</em>
+                <ul>
+                  {Object.entries(site.details).map(([category, value]) => (
+                    <li key={category}>
+                      {category}: {value.toFixed(1)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {site.recommendations && site.recommendations.length > 0 && (
-              <ul>
-                {site.recommendations.map((rec, idx) => (
-                  <li key={idx}>{rec}</li>
-                ))}
-              </ul>
+              <div>
+                <em>Recommendations:</em>
+                <ul>
+                  {site.recommendations.map((rec, idx) => (
+                    <li key={idx}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </li>
         ))}
       </ul>
     </div>
   );
-}
+};
+
+export default SitesPage;
