@@ -7,7 +7,7 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/scan', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -26,24 +26,40 @@ export default function Home() {
       <h1>AI Readiness Score</h1>
       <form onSubmit={handleSubmit}>
         <input
-          type="url"
+          type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
-          required
-          style={{ width: '300px' }}
+          placeholder="Enter website URL"
+          style={{ width: '300px', marginRight: '0.5rem' }}
         />
         <button type="submit">Scan</button>
       </form>
       {result && (
-        <div>
-          <h2>Score: {result.score}</h2>
-          <h3>Recommendations:</h3>
-          <ul>
-            {result.recommendations.map((rec, idx) => (
-              <li key={idx}>{rec}</li>
-            ))}
-          </ul>
+        <div style={{ marginTop: '1rem' }}>
+          <h2>Results for {result.url}</h2>
+          <p>Score: {result.score}</p>
+          {result.details && (
+            <>
+              <h3>Category Breakdown</h3>
+              <ul>
+                {Object.entries(result.details).map(([category, value]) => (
+                  <li key={category}>
+                    {category}: {value.toFixed(1)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {result.recommendations && result.recommendations.length > 0 && (
+            <>
+              <h3>Recommendations</h3>
+              <ul>
+                {result.recommendations.map((rec, idx) => (
+                  <li key={idx}>{rec}</li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>
